@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Task, SubTask } from '../types';
+import { Task, SubTask } from '../types.ts';
 import { ChevronDown, ChevronUp, CheckCircle, Circle, Cpu, Trash2, Zap } from 'lucide-react';
 
 interface TaskNodeProps {

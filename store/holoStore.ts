@@ -1,5 +1,5 @@
 
-import { Task, HoloSession } from '../types';
+import { Task, HoloSession } from '../types.ts';
 
 const KEY_PREFIX = 'HOLOTASK_V2_';
 

@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Terminal, Shield, Power, Plus, Brain, Activity, Target } from 'lucide-react';
-import { Task, SubTask } from './types';
-import { getSession, saveSession } from './store/holoStore';
-import { decomposeTask } from './services/geminiService';
-import HoloCore from './components/HoloCore';
-import TaskNode from './components/TaskNode';
+import { Task, SubTask } from './types.ts';
+import { getSession, saveSession } from './store/holoStore.ts';
+import { decomposeTask } from './services/geminiService.ts';
+import HoloCore from './components/HoloCore.tsx';
+import TaskNode from './components/TaskNode.tsx';
 
 const App: React.FC = () => {
   const [commandId, setCommandId] = useState<string | null>(localStorage.getItem('ACTIVE_UPLINK'));
