@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Terminal, Shield, Power, Plus, Brain, Activity, Target, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-import { Task, SubTask } from './types.ts';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Terminal, Shield, Power, Plus, Brain, Activity, Target, ChevronLeft, ChevronRight, Filter, Settings, X, Download, Upload, User, Save } from 'lucide-react';
+import { Task, SubTask, UserProfile } from './types.ts';
 import { getSession, saveSession } from './store/holoStore.ts';
 import { decomposeTask } from './services/geminiService.ts';
 import HoloCore from './components/HoloCore.tsx';
@@ -20,8 +20,11 @@ const App: React.FC = () => {
   const [commandId, setCommandId] = useState<string | null>(localStorage.getItem('ACTIVE_UPLINK'));
   const [inputCommandId, setInputCommandId] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [profile, setProfile] = useState<UserProfile>({ callsign: 'OPERATOR_01', joinedAt: Date.now() });
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isDecomposing, setIsDecomposing] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Pagination & Sorting State
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,6 +35,9 @@ const App: React.FC = () => {
     if (commandId) {
       const storedTasks = getSession(commandId);
       setTasks(storedTasks);
+      
+      const storedProfile = localStorage.getItem(`PROFILE_${commandId}`);
+      if (storedProfile) setProfile(JSON.parse(storedProfile));
     }
   }, [commandId]);
 
@@ -53,6 +59,46 @@ const App: React.FC = () => {
     setCommandId(null);
     localStorage.removeItem('ACTIVE_UPLINK');
     setTasks([]);
+    setIsSettingsOpen(false);
+  };
+
+  const saveProfile = (newCallsign: string) => {
+    const updated = { ...profile, callsign: newCallsign };
+    setProfile(updated);
+    if (commandId) {
+      localStorage.setItem(`PROFILE_${commandId}`, JSON.stringify(updated));
+    }
+  };
+
+  const exportTasks = () => {
+    const dataStr = JSON.stringify(tasks, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `holotask_${commandId}_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importTasks = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target?.result as string);
+        if (Array.isArray(imported)) {
+          setTasks(imported);
+          alert('DIRECTIVE DATA UPLINK SUCCESSFUL');
+        }
+      } catch (err) {
+        alert('DATA CORRUPTION DETECTED: INVALID JSON FORMAT');
+      }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const addTask = (e: React.FormEvent) => {
@@ -72,10 +118,9 @@ const App: React.FC = () => {
 
     setTasks(prev => [task, ...prev]);
     setNewTaskTitle('');
-    setCurrentPage(1); // Jump to first page on add
+    setCurrentPage(1);
   };
 
-  // Memoized Sorted Tasks
   const sortedTasks = useMemo(() => {
     const list = [...tasks];
     switch (sortBy) {
@@ -92,7 +137,6 @@ const App: React.FC = () => {
     }
   }, [tasks, sortBy]);
 
-  // Paginated Slicing
   const totalPages = Math.ceil(sortedTasks.length / itemsPerPage);
   const paginatedTasks = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -187,6 +231,8 @@ const App: React.FC = () => {
         }
         return t;
       }));
+    } else {
+      alert("Neural link failed. Ensure environment API Key is active.");
     }
     setIsDecomposing(false);
   };
@@ -236,6 +282,82 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen relative overflow-x-hidden font-inter text-slate-200">
       <HoloCore efficiency={globalEfficiency} />
+      <input type="file" ref={fileInputRef} onChange={importTasks} accept=".json" className="hidden" />
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="max-w-lg w-full glass border border-cyan-500/30 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+              <div className="flex items-center space-x-2">
+                <Settings className="w-4 h-4 text-cyan-400" />
+                <span className="font-orbitron text-xs tracking-widest uppercase text-cyan-400">System Settings</span>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-8">
+              {/* Profile Section */}
+              <section className="space-y-4">
+                <div className="flex items-center space-x-2 text-[10px] font-orbitron text-slate-500 tracking-[0.2em] uppercase">
+                  <User className="w-3 h-3" />
+                  <span>Operator Profile</span>
+                </div>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-600 to-purple-700 flex items-center justify-center text-xl font-orbitron font-bold border border-white/20">
+                    {profile.callsign[0]}
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[8px] font-orbitron text-slate-600 uppercase mb-1">Callsign</label>
+                    <input 
+                      type="text" 
+                      value={profile.callsign}
+                      onChange={(e) => saveProfile(e.target.value)}
+                      className="w-full bg-transparent border-none p-0 text-cyan-400 font-orbitron text-sm focus:ring-0"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* Data Management */}
+              <section className="space-y-4">
+                <div className="flex items-center space-x-2 text-[10px] font-orbitron text-slate-500 tracking-[0.2em] uppercase">
+                  <Save className="w-3 h-3" />
+                  <span>Data Protocols</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={exportTasks}
+                    className="flex flex-col items-center justify-center p-4 glass hover:bg-white/5 rounded-xl border border-white/5 transition-all group"
+                  >
+                    <Download className="w-6 h-6 text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+                    <span className="text-[9px] font-orbitron uppercase tracking-widest">Export JSON</span>
+                  </button>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center p-4 glass hover:bg-white/5 rounded-xl border border-white/5 transition-all group"
+                  >
+                    <Upload className="w-6 h-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+                    <span className="text-[9px] font-orbitron uppercase tracking-widest">Import JSON</span>
+                  </button>
+                </div>
+              </section>
+
+              <section className="pt-4 border-t border-white/5">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all font-orbitron text-xs tracking-widest"
+                >
+                  <Power className="w-4 h-4" />
+                  <span>TERMINATE UPLINK</span>
+                </button>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Responsive Header */}
       <header className="sticky top-0 z-50 glass border-b border-white/5 px-4 md:px-6 py-4">
@@ -264,12 +386,20 @@ const App: React.FC = () => {
               </div>
             </div>
             
-            <button 
-              onClick={handleLogout}
-              className="p-2 ml-4 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-transparent hover:border-red-500/20 rounded-lg transition-all"
-            >
-              <Power className="w-5 h-5" />
-            </button>
+            <div className="flex items-center space-x-2 ml-4">
+               <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 hover:bg-white/10 text-slate-400 hover:text-cyan-400 border border-transparent hover:border-white/10 rounded-lg transition-all"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-transparent hover:border-red-500/20 rounded-lg transition-all"
+              >
+                <Power className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -277,6 +407,18 @@ const App: React.FC = () => {
       {/* Main UI */}
       <main className="max-w-4xl mx-auto px-4 py-8 md:p-12 relative z-10">
         
+        {/* Welcome HUD */}
+        <div className="mb-8 flex items-end justify-between px-2">
+           <div>
+              <span className="text-[10px] font-orbitron text-cyan-500 tracking-[0.3em] uppercase opacity-60">Status: Online</span>
+              <h2 className="text-xl md:text-2xl font-orbitron font-bold text-slate-100">Welcome, <span className="text-cyan-400 glow-text">{profile.callsign}</span></h2>
+           </div>
+           <div className="hidden sm:block text-right">
+              <span className="block text-[8px] font-orbitron text-slate-600 uppercase">System Time</span>
+              <span className="text-xs font-orbitron text-slate-400">{new Date().toLocaleTimeString()}</span>
+           </div>
+        </div>
+
         {/* Input Control */}
         <section className="mb-8 md:mb-12">
           <form onSubmit={addTask} className="relative group">
@@ -299,7 +441,7 @@ const App: React.FC = () => {
           </form>
         </section>
 
-        {/* HUD Controls (Sorting & Pagination) */}
+        {/* HUD Controls */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 px-2">
           <div className="flex items-center space-x-2 text-[10px] font-orbitron tracking-widest text-slate-500">
             <Filter className="w-3 h-3" />
@@ -388,7 +530,7 @@ const App: React.FC = () => {
       <footer className="fixed bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 flex items-center justify-between text-[6px] md:text-[10px] font-orbitron text-slate-600 tracking-[0.2em] md:tracking-[0.3em] uppercase pointer-events-none">
         <div>System: <span className="text-green-500">OPT</span></div>
         <div className="hidden sm:block">Lat: 14ms | Uplink: ACT</div>
-        <div>Holo v2.5.0</div>
+        <div>Holo v2.5.1</div>
       </footer>
     </div>
   );

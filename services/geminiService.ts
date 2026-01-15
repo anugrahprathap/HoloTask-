@@ -1,13 +1,18 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Always use process.env.API_KEY directly as per guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const decomposeTask = async (taskTitle: string) => {
+  // Check for API key presence to avoid crashing
+  if (!process.env.API_KEY) {
+    console.error("Gemini API Key missing in environment.");
+    return null;
+  }
+
   try {
+    // Initialize inside function as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
-      // Using gemini-3-pro-preview for complex reasoning task (decomposition)
       model: 'gemini-3-pro-preview',
       contents: `Decompose the following complex directive into 3 to 5 logical sub-directives for a futuristic command center interface: "${taskTitle}"`,
       config: {

@@ -18,7 +18,13 @@ export interface Task {
   createdAt: number;
 }
 
+export interface UserProfile {
+  callsign: string;
+  joinedAt: number;
+}
+
 export interface HoloSession {
   commandId: string;
   tasks: Task[];
+  profile?: UserProfile;
 }
