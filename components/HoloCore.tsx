@@ -4,6 +4,15 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Sphere, Points, PointMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
+// Define local components to fix JSX.IntrinsicElements type errors in strict environments
+// This ensures that 'group', 'mesh', etc. are recognized as valid React components.
+const Group = 'group' as any;
+const Mesh = 'mesh' as any;
+const TorusGeometry = 'torusGeometry' as any;
+const MeshStandardMaterial = 'meshStandardMaterial' as any;
+const AmbientLight = 'ambientLight' as any;
+const PointLight = 'pointLight' as any;
+
 const ProductivityCore = ({ efficiency }: { efficiency: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
@@ -23,7 +32,7 @@ const ProductivityCore = ({ efficiency }: { efficiency: number }) => {
   });
 
   return (
-    <group>
+    <Group>
       <Float speed={2} rotationIntensity={1} floatIntensity={1}>
         <Sphere ref={meshRef} args={[1, 64, 64]} scale={scale}>
           <MeshDistortMaterial
@@ -40,11 +49,11 @@ const ProductivityCore = ({ efficiency }: { efficiency: number }) => {
       </Float>
       
       {/* Outer energy ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[2.5 * scale, 0.02, 16, 100]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
-      </mesh>
-    </group>
+      <Mesh rotation={[Math.PI / 2, 0, 0]}>
+        <TorusGeometry args={[2.5 * scale, 0.02, 16, 100]} />
+        <MeshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
+      </Mesh>
+    </Group>
   );
 };
 
@@ -84,9 +93,9 @@ const HoloCore: React.FC<{ efficiency: number }> = ({ efficiency }) => {
   return (
     <div className="fixed inset-0 -z-10 bg-[#020617]">
       <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
-        <ambientLight intensity={0.4} />
-        <pointLight position={[10, 10, 10]} intensity={1} color="#06b6d4" />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
+        <AmbientLight intensity={0.4} />
+        <PointLight position={[10, 10, 10]} intensity={1} color="#06b6d4" />
+        <PointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
         <ProductivityCore efficiency={efficiency} />
         <StarField />
       </Canvas>

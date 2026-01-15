@@ -1,21 +1,14 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Safe API key extraction to prevent crashes in environments where 'process' is undefined
-const getApiKey = () => {
-  try {
-    return typeof process !== 'undefined' ? process.env.API_KEY : '';
-  } catch (e) {
-    return '';
-  }
-};
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() || '' });
+// Always use process.env.API_KEY directly as per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const decomposeTask = async (taskTitle: string) => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      // Using gemini-3-pro-preview for complex reasoning task (decomposition)
+      model: 'gemini-3-pro-preview',
       contents: `Decompose the following complex directive into 3 to 5 logical sub-directives for a futuristic command center interface: "${taskTitle}"`,
       config: {
         responseMimeType: "application/json",

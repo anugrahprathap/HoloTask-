@@ -4,6 +4,7 @@ export interface SubTask {
   title: string;
   completed: boolean;
   effort: number;
+  remark?: string;
 }
 
 export interface Task {
@@ -13,6 +14,7 @@ export interface Task {
   completed: boolean;
   effort: string; // low, medium, high
   subtasks: SubTask[];
+  remark?: string;
   createdAt: number;
 }
 
