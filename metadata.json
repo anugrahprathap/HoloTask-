@@ -1,0 +1,5 @@
+{
+  "name": "HoloTask 3D",
+  "description": "An immersive, AI-powered 3D task management command center using Gemini for smart task decomposition.",
+  "requestFramePermissions": []
+}
